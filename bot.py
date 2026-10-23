@@ -1,5 +1,7 @@
 """Cycle Companion — Telegram bot. Answers you AND sends the daily reminder."""
 import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import date, datetime
 from dotenv import load_dotenv
 from telegram import Update
@@ -22,6 +24,24 @@ load_dotenv()
 # File that records the last date a reminder was sent,
 # so we don't spam you multiple times a day.
 LAST_REMINDER_FILE = "last_reminder.txt"
+
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+
+    def log_message(self, *args):
+        pass  # silence the request logs
+
+
+def start_health_server():
+    """Run a tiny HTTP server so Render's health check finds a port."""
+    port = int(os.environ.get("PORT", 8000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
 
 
 def build_reply(text, user_id):
@@ -177,6 +197,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    start_health_server()  # <-- starts the tiny HTTP server for Render's health check
+
     token = os.environ["TELEGRAM_TOKEN"]
     app = Application.builder().token(token).build()
 
