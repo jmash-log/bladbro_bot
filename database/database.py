@@ -123,3 +123,6 @@ def get_last_period(user_id):
         return None
     return {
         "id": row["id"],
+            "start_date": row["start_date"].isoformat(),
+            "end_date": row["end_date"].isoformat() if row["end_date"] else None,
+    }
